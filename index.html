@@ -67,7 +67,7 @@ select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8
 <div class="card"><div id="lg"></div></div>
 <h2>Barometer</h2>
 <div class="card"><div class="in"><label>Minúta hodiny <span class="st"><button type="button" data-t="bm" data-d="-1">−</button><input type="number" id="bm" min="0" max="45" value="30"><button type="button" data-t="bm" data-d="1">+</button></span></label><label>Počet kvázi <span class="st"><button type="button" data-t="bc" data-d="-1">−</button><input type="number" id="bc" min="0" value="1"><button type="button" data-t="bc" data-d="1">+</button></span></label></div><div id="gg"></div></div>
-<p class="note">Odhad vychádza z doterajšieho tempa (počet ÷ odohraný podiel hodiny). Hodina má rastúcu intenzitu ku koncu (30, 33, 37 %), takže posledné okno prináša najviac kvázi. Posledné kvázi z histórie je len slabý východiskový odhad.</p>
+<p class="note">Odhad vychádza z doterajšieho tempa (počet ÷ odohraný podiel hodiny). Kvázi sa zhlukujú a najviac ich býva v strede hodiny (približne 25, 46 a 29 % v troch oknách); zhluky rozširujú rozsah výsledkov. Posledné kvázi z histórie je len slabý východiskový odhad.</p>
 <h2>Grafika</h2>
 <div class="card"><div class="in">
 <label>Nadpis <input type="text" id="pt" value="projekcia"></label>
@@ -91,12 +91,17 @@ var DATA = [
   { date: "2026-11-05", odds: 9.50 },
   { date: "2026-11-09", odds: 7.50 },
   { date: "2026-11-16", odds: 3.00 },
-  { date: "2026-11-19", odds: 5.50 }
+  { date: "2026-11-19", odds: 5.50 },
+  { date: "2026-11-23", odds: 7.00 }
 ];
 
 var SETTINGS = {
   hourMinutes: 45,
   weights: [0.30, 0.33, 0.37],
+  baseWeights: [0.30, 0.33, 0.37],
+  seenCounts: [1, 5, 1],
+  seenStrength: 14,
+  burst: 2,
   gaugeMin: 3,
   gaugeMax: 20,
   gaugeTicks: [3, 6, 10, 15, 20],
@@ -104,8 +109,12 @@ var SETTINGS = {
   rangeZ: 1.28,
   halfLifeDays: 14,
   priorWeight: 1.5,
-  predictDate: "2026-11-23"
+  predictDate: "2026-11-25"
 };
+SETTINGS.weights = SETTINGS.baseWeights.map(function (w, i) {
+  var seen = SETTINGS.seenCounts.reduce(function (a, b) { return a + b; }, 0);
+  return (w * SETTINGS.seenStrength + SETTINGS.seenCounts[i]) / (SETTINGS.seenStrength + seen);
+});
 
 function $(id) { return document.getElementById(id); }
 
@@ -214,10 +223,11 @@ function gaugeTarget() {
   var count = Math.max(0, Math.floor(+$("bc").value || 0));
 
   var mean = expectedCount(last), share = elapsedShare(minute);
-  var pace = (S.priorStrength + count) / (S.priorStrength / mean + share);
+  var ps = S.priorStrength * S.burst;
+  var pace = (ps + count) / (ps / mean + share);
   var final = count + pace * (1 - share);
 
-  var sd = Math.sqrt((1 - share) * pace + Math.pow(1 - share, 2) * (S.priorStrength + count) / Math.pow(S.priorStrength / mean + share, 2));
+  var sd = Math.sqrt(S.burst * ((1 - share) * pace + Math.pow(1 - share, 2) * (ps + count) / Math.pow(ps / mean + share, 2)));
   return { fin: final, lo: Math.max(count, final - S.rangeZ * sd), hi: final + S.rangeZ * sd, pace: pace, minute: minute };
 }
 
