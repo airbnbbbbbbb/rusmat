@@ -93,6 +93,7 @@ var DATA = [
   { date: "2026-11-16", odds: 3.00 },
   { date: "2026-11-19", odds: 5.50 },
   { date: "2026-11-23", odds: 7.00 }
+  { date: "2026-11-25", odds: 10.00 }
 ];
 
 var SETTINGS = {
@@ -109,7 +110,7 @@ var SETTINGS = {
   rangeZ: 1.28,
   halfLifeDays: 14,
   priorWeight: 1.5,
-  predictDate: "2026-11-25"
+  predictDate: "2026-11-26"
 };
 SETTINGS.weights = SETTINGS.baseWeights.map(function (w, i) {
   var seen = SETTINGS.seenCounts.reduce(function (a, b) { return a + b; }, 0);
